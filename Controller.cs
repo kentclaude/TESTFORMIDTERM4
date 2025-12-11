@@ -4,10 +4,39 @@ namespace CommunityFoodWasteSharing
 {
     public class Controller
     {
+        
+        private string ReadPassword()
+        {
+            string password = "";
+            ConsoleKeyInfo key;
+
+            do
+            {
+                key = Console.ReadKey(true);
+
+                
+                if (key.Key == ConsoleKey.Backspace && password.Length > 0)
+                {
+                    password = password.Substring(0, password.Length - 1);
+                    Console.Write("\b \b");
+                }
+                else if (!char.IsControl(key.KeyChar))
+                {
+                    password += key.KeyChar;
+                    Console.Write("*");
+                }
+            } while (key.Key != ConsoleKey.Enter);
+
+            Console.WriteLine();
+            return password;
+        }
+
         public void Start()
         {
             while (true)
             {
+                Console.Clear();
+
                 Console.WriteLine("\n");
                 Console.WriteLine(" ███╗   ███╗ █████╗ ███╗   ██╗██████╗  █████╗ ██╗   ██╗███████╗");
                 Console.WriteLine(" ████╗ ████║██╔══██╗████╗  ██║██╔══██╗██╔══██╗██║   ██║██╔════╝");
@@ -22,7 +51,7 @@ namespace CommunityFoodWasteSharing
                 Console.WriteLine($"{"OPTION",-10} | {"ROLE",-35}");
                 Console.WriteLine(new string('-', 60));
                 Console.WriteLine($"{"1",-10} | {"Donor",-35}");
-                Console.WriteLine($"{"2",-10} | {"Reporter",-35}");
+                Console.WriteLine($"{"2",-10} | {"Requester",-35}");
                 Console.WriteLine($"{"3",-10} | {"Admin (LGU Staff/Mayor)",-35}");
                 Console.WriteLine($"{"4",-10} | {"Exit",-35}");
                 Console.WriteLine(new string('-', 60));
@@ -36,7 +65,7 @@ namespace CommunityFoodWasteSharing
                         DonorMenu();
                         break;
                     case "2":
-                        ReporterMenu();
+                        RequesterMenu();
                         break;
                     case "3":
                         AdminMenu();
@@ -46,6 +75,8 @@ namespace CommunityFoodWasteSharing
                         return;
                     default:
                         Console.WriteLine("❌ Invalid option.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
                         break;
                 }
             }
@@ -53,6 +84,8 @@ namespace CommunityFoodWasteSharing
 
         private void DonorMenu()
         {
+            Console.Clear();
+
             Donor donor = new Donor();
 
             Console.WriteLine("\n" + new string('=', 60));
@@ -74,17 +107,26 @@ namespace CommunityFoodWasteSharing
             if (option == "1")
             {
                 donor.CreateAccount();
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
                 loggedIn = true;
             }
             else if (option == "2")
             {
                 loggedIn = donor.Login();
+                if (loggedIn)
+                {
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
             }
 
             if (!loggedIn) return;
 
             while (true)
             {
+                Console.Clear();
+
                 Console.WriteLine("\n" + new string('=', 60));
                 Console.WriteLine("                 DONOR MENU");
                 Console.WriteLine(new string('=', 60));
@@ -92,70 +134,76 @@ namespace CommunityFoodWasteSharing
                 Console.WriteLine(new string('-', 50));
                 Console.WriteLine($"{"OPTION",-10} | {"ACTION",-35}");
                 Console.WriteLine(new string('-', 50));
-                Console.WriteLine($"{"1",-10} | {"Record Donation",-35}");
-                Console.WriteLine($"{"2",-10} | {"View Donation History",-35}");
+                Console.WriteLine($"{"1",-10} | {"Donate Item",-35}");
+                Console.WriteLine($"{"2",-10} | {"View My Donations",-35}");
                 Console.WriteLine($"{"3",-10} | {"Back",-35}");
                 Console.WriteLine(new string('-', 50));
 
                 Console.Write("Choose: ");
                 string choice = Console.ReadLine();
 
-                if (choice == "1") donor.RecordDonation();
-                else if (choice == "2") donor.ViewDonationHistory();
+                if (choice == "1")
+                {
+                    donor.DonateItem();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "2")
+                {
+                    donor.ViewMyDonations();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
                 else if (choice == "3") return;
-                else Console.WriteLine("❌ Invalid choice.");
+                else
+                {
+                    Console.WriteLine("❌ Invalid choice.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
             }
         }
 
-        private void ReporterMenu()
+        private void RequesterMenu()
         {
-            Console.WriteLine("\n" + new string('=', 60));
-            Console.WriteLine("                 REPORTER MENU");
-            Console.WriteLine(new string('=', 60));
+            Console.Clear();
 
-            Console.WriteLine(new string('-', 50));
-            Console.WriteLine($"{"OPTION",-10} | {"ACTION",-35}");
-            Console.WriteLine(new string('-', 50));
-            Console.WriteLine($"{"1",-10} | {"Submit New Report",-35}");
-            Console.WriteLine($"{"2",-10} | {"View All Reports",-35}");
-            Console.WriteLine($"{"3",-10} | {"Back",-35}");
-            Console.WriteLine(new string('-', 50));
+            Request request = new Request();
+            request.SubmitRequest();
 
-            Console.Write("Choose: ");
-            string choice = Console.ReadLine();
-
-            Report report = new Report();
-
-            if (choice == "1")
-                report.SubmitReport();
-            else if (choice == "2")
-                report.ViewAllReports();
-            else if (choice == "3")
-                return;
-            else
-                Console.WriteLine("❌ Invalid choice.");
+            Console.WriteLine("\nPress any key to return to main menu...");
+            Console.ReadKey();
         }
 
         private void AdminMenu()
         {
+            Console.Clear();
+
             Console.WriteLine("\n" + new string('=', 60));
             Console.WriteLine("           Mandaue City LGU Admin Login");
             Console.WriteLine(new string('=', 60));
             Console.Write("Username: ");
             string user = Console.ReadLine();
             Console.Write("Password: ");
-            string pass = Console.ReadLine();
+            string pass = ReadPassword();
 
             Admin admin = new Admin();
 
             if (!admin.Login(user, pass))
             {
                 Console.WriteLine("❌ Login failed.");
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
                 return;
             }
 
+            Console.WriteLine("\nPress any key to continue...");
+            Console.ReadKey();
+
             while (true)
             {
+                Console.Clear();
+
                 Console.WriteLine("\n" + new string('=', 60));
                 Console.WriteLine("           MANDAUE CITY LGU ADMIN PANEL");
                 Console.WriteLine(new string('=', 60));
@@ -165,28 +213,66 @@ namespace CommunityFoodWasteSharing
                 Console.WriteLine(new string('-', 60));
                 Console.WriteLine($"{"1",-10} | {"View All Donors",-45}");
                 Console.WriteLine($"{"2",-10} | {"View All Donations",-45}");
-                Console.WriteLine($"{"3",-10} | {"View All Reports",-45}");
-                Console.WriteLine($"{"4",-10} | {"Search Records",-45}");
-                Console.WriteLine($"{"5",-10} | {"Match Donation to Report",-45}");
-                Console.WriteLine($"{"6",-10} | {"Mark Donation as Distributed",-45}");
-                Console.WriteLine($"{"7",-10} | {"Generate Summary",-45}");
-                Console.WriteLine($"{"8",-10} | {"Clear Data",-45}");
-                Console.WriteLine($"{"9",-10} | {"Back",-45}");
+                Console.WriteLine($"{"3",-10} | {"View Pending Requests",-45}");
+                Console.WriteLine($"{"4",-10} | {"Process Pending Requests",-45}");
+                Console.WriteLine($"{"5",-10} | {"Search Records",-45}");
+                Console.WriteLine($"{"6",-10} | {"Generate Summary",-45}");
+                Console.WriteLine($"{"7",-10} | {"Clear Data",-45}");
+                Console.WriteLine($"{"8",-10} | {"Back",-45}");
                 Console.WriteLine(new string('-', 60));
 
                 Console.Write("Choose: ");
                 string choice = Console.ReadLine();
 
-                if (choice == "1") admin.ViewAllDonors();
-                else if (choice == "2") admin.ViewAllDonations();
-                else if (choice == "3") admin.ViewAllReports();
-                else if (choice == "4") admin.SearchRecords();
-                else if (choice == "5") admin.MatchDonationToReport();
-                else if (choice == "6") admin.MarkAsDistributed();
-                else if (choice == "7") admin.GenerateSummary();
-                else if (choice == "8") admin.ClearData();
-                else if (choice == "9") return;
-                else Console.WriteLine("❌ Invalid choice.");
+                if (choice == "1")
+                {
+                    admin.ViewAllDonors();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "2")
+                {
+                    admin.ViewAllDonations();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "3")
+                {
+                    admin.ViewPendingRequests();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "4")
+                {
+                    admin.ProcessPendingRequests();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "5")
+                {
+                    admin.SearchRecords();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "6")
+                {
+                    admin.GenerateSummary();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "7")
+                {
+                    admin.ClearData();
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
+                else if (choice == "8") return;
+                else
+                {
+                    Console.WriteLine("❌ Invalid choice.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                }
             }
         }
     }

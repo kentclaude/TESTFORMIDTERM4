@@ -9,14 +9,15 @@ namespace CommunityFoodWasteSharing
         private static readonly string FOLDER_PATH = "FoodWasteData";
         private static readonly string DONORS_FILE = Path.Combine(FOLDER_PATH, "donors.txt");
         private static readonly string DONATIONS_FILE = Path.Combine(FOLDER_PATH, "donations.txt");
-        private static readonly string REPORTS_FILE = Path.Combine(FOLDER_PATH, "reports.txt");
+        private static readonly string PENDING_REQUESTS_FILE = Path.Combine(FOLDER_PATH, "pending_requests.txt");
+        private static readonly string COMPLETED_REQUESTS_FILE = Path.Combine(FOLDER_PATH, "completed_requests.txt");
 
         public static readonly string[] BARANGAYS = {
             "Bakilid", "Banilad", "Basak", "Cabancalan", "Cambaro", "Canduman",
             "Casili", "Centro (Poblacion)", "Cubacub", "Guizo", "Ibabao-Estancia",
             "Jagobiao", "Labogon", "Looc", "Maguikay", "Mantuyong", "Opao",
             "Pagsabungan", "Subangdaku", "Tabok", "Tingub", "Tipolo", "Umapad",
-            "Alang-alang", "Bakilid", "Pakna-an", "Tawason"
+            "Alang-alang", "Pakna-an", "Tawason"
         };
 
         public FileManager()
@@ -24,24 +25,11 @@ namespace CommunityFoodWasteSharing
             Directory.CreateDirectory(FOLDER_PATH);
         }
 
-        public void SaveDonor(string donorId, string name, string contact, string address, string barangay)
+        
+        public void SaveDonor(string donorId, string name, string contact, string barangay)
         {
-            string data = $"{donorId}|{name}|{contact}|{address}|{barangay}";
+            string data = $"{donorId}|{name}|{contact}|{barangay}";
             File.AppendAllText(DONORS_FILE, data + Environment.NewLine);
-        }
-
-        public bool DonorExists(string donorId)
-        {
-            if (!File.Exists(DONORS_FILE)) return false;
-
-            string[] lines = File.ReadAllLines(DONORS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[0] == donorId) return true;
-            }
-            return false;
         }
 
         public string GetDonorInfo(string donorId)
@@ -55,24 +43,10 @@ namespace CommunityFoodWasteSharing
                 string[] parts = line.Split('|');
                 if (parts[0] == donorId)
                 {
-                    return $"{parts[1]}|{parts[2]}|{parts[3]}|{parts[4]}";
+                    return $"{parts[1]}|{parts[2]}|{parts[3]}";
                 }
             }
             return null;
-        }
-
-        public string GetDonorName(string donorId)
-        {
-            if (!File.Exists(DONORS_FILE)) return "Unknown";
-
-            string[] lines = File.ReadAllLines(DONORS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[0] == donorId) return parts[1];
-            }
-            return "Unknown";
         }
 
         public List<string> LoadDonors()
@@ -91,24 +65,10 @@ namespace CommunityFoodWasteSharing
             return donors;
         }
 
-        public bool DonationExists(string donationId)
+        
+        public void SaveDonation(string itemNumber, string donorId, string donorName, string category, int quantity, string barangay)
         {
-            if (!File.Exists(DONATIONS_FILE)) return false;
-
-            string[] lines = File.ReadAllLines(DONATIONS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[0] == donationId) return true;
-            }
-            return false;
-        }
-
-        public void SaveDonation(string donationId, string donorId, string foodType, int quantity,
-                                 string barangay, DateTime dateTime, string status)
-        {
-            string data = $"{donationId}|{donorId}|{foodType}|{quantity}|{barangay}|{dateTime}|{status}";
+            string data = $"{itemNumber}|{donorId}|{category}|{quantity}|{barangay}|{donorName}";
             File.AppendAllText(DONATIONS_FILE, data + Environment.NewLine);
         }
 
@@ -146,7 +106,27 @@ namespace CommunityFoodWasteSharing
             return donations;
         }
 
-        public void UpdateDonationStatus(string donationId, string newStatus)
+        public List<string> FindMatchingDonations(string barangay, string category)
+        {
+            List<string> matches = new List<string>();
+            if (!File.Exists(DONATIONS_FILE)) return matches;
+
+            string[] lines = File.ReadAllLines(DONATIONS_FILE);
+            foreach (string line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                string[] parts = line.Split('|');
+
+                // Check if barangay and category match
+                if (parts[4] == barangay && parts[2] == category)
+                {
+                    matches.Add(line);
+                }
+            }
+            return matches;
+        }
+
+        public void UpdateDonationQuantity(string itemNumber, int newQuantity)
         {
             if (!File.Exists(DONATIONS_FILE)) return;
 
@@ -155,9 +135,10 @@ namespace CommunityFoodWasteSharing
             {
                 if (string.IsNullOrWhiteSpace(lines[i])) continue;
                 string[] parts = lines[i].Split('|');
-                if (parts[0] == donationId)
+
+                if (parts[0] == itemNumber)
                 {
-                    parts[6] = newStatus;
+                    parts[3] = newQuantity.ToString();
                     lines[i] = string.Join("|", parts);
                     break;
                 }
@@ -165,76 +146,66 @@ namespace CommunityFoodWasteSharing
             File.WriteAllLines(DONATIONS_FILE, lines);
         }
 
-        public bool IsDonationMatched(string donationId)
+        public void RemoveDonation(string itemNumber)
         {
-            if (!File.Exists(DONATIONS_FILE)) return false;
+            if (!File.Exists(DONATIONS_FILE)) return;
 
-            string[] lines = File.ReadAllLines(DONATIONS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[0] == donationId && parts[6].Equals("Matched", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
+            List<string> lines = new List<string>(File.ReadAllLines(DONATIONS_FILE));
+            lines.RemoveAll(line => !string.IsNullOrWhiteSpace(line) && line.Split('|')[0] == itemNumber);
+            File.WriteAllLines(DONATIONS_FILE, lines);
         }
 
-        public bool ReportExists(string reportId)
+        public void SavePendingRequest(string requestId, string name, string barangay, string category, int quantity)
         {
-            if (!File.Exists(REPORTS_FILE)) return false;
-
-            string[] lines = File.ReadAllLines(REPORTS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[0] == reportId) return true;
-            }
-            return false;
+            string data = $"{requestId}|{name}|{barangay}|{category}|{quantity}";
+            File.AppendAllText(PENDING_REQUESTS_FILE, data + Environment.NewLine);
         }
 
-        public void SaveReport(string reportId, string description, string barangay, DateTime observed, string status)
+        public void SaveCompletedRequest(string requestId, string name, string barangay, string category, int quantity)
         {
-            string data = $"{reportId}|{description}|{barangay}|{observed}|{status}";
-            File.AppendAllText(REPORTS_FILE, data + Environment.NewLine);
+            string data = $"{requestId}|{name}|{barangay}|{category}|{quantity}";
+            File.AppendAllText(COMPLETED_REQUESTS_FILE, data + Environment.NewLine);
         }
 
-        public List<string> LoadReports()
+        public void RemovePendingRequest(string requestId)
         {
-            List<string> reports = new List<string>();
-            if (!File.Exists(REPORTS_FILE)) return reports;
+            if (!File.Exists(PENDING_REQUESTS_FILE)) return;
 
-            string[] lines = File.ReadAllLines(REPORTS_FILE);
+            List<string> lines = new List<string>(File.ReadAllLines(PENDING_REQUESTS_FILE));
+            lines.RemoveAll(line => !string.IsNullOrWhiteSpace(line) && line.StartsWith(requestId + "|"));
+            File.WriteAllLines(PENDING_REQUESTS_FILE, lines);
+        }
+
+        public List<string> LoadPendingRequests()
+        {
+            List<string> requests = new List<string>();
+            if (!File.Exists(PENDING_REQUESTS_FILE)) return requests;
+
+            string[] lines = File.ReadAllLines(PENDING_REQUESTS_FILE);
             foreach (string line in lines)
             {
                 if (!string.IsNullOrWhiteSpace(line))
                 {
-                    reports.Add(line);
+                    requests.Add(line);
                 }
             }
-            return reports;
+            return requests;
         }
 
-        public void UpdateReportStatus(string reportId, string newStatus)
+        public List<string> LoadCompletedRequests()
         {
-            if (!File.Exists(REPORTS_FILE)) return;
+            List<string> requests = new List<string>();
+            if (!File.Exists(COMPLETED_REQUESTS_FILE)) return requests;
 
-            string[] lines = File.ReadAllLines(REPORTS_FILE);
-            for (int i = 0; i < lines.Length; i++)
+            string[] lines = File.ReadAllLines(COMPLETED_REQUESTS_FILE);
+            foreach (string line in lines)
             {
-                if (string.IsNullOrWhiteSpace(lines[i])) continue;
-                string[] parts = lines[i].Split('|');
-                if (parts[0] == reportId)
+                if (!string.IsNullOrWhiteSpace(line))
                 {
-                    parts[4] = newStatus;
-                    lines[i] = string.Join("|", parts);
-                    break;
+                    requests.Add(line);
                 }
             }
-            File.WriteAllLines(REPORTS_FILE, lines);
+            return requests;
         }
 
         public List<string> SearchDonors(string keyword)
@@ -271,74 +242,75 @@ namespace CommunityFoodWasteSharing
             return results;
         }
 
-        public List<string> SearchReports(string keyword)
+        public List<string> SearchRequests(string keyword)
         {
             List<string> results = new List<string>();
-            if (!File.Exists(REPORTS_FILE)) return results;
 
-            string[] lines = File.ReadAllLines(REPORTS_FILE);
-            foreach (string line in lines)
+            if (File.Exists(PENDING_REQUESTS_FILE))
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                if (line.ToLower().Contains(keyword.ToLower()))
+                string[] lines = File.ReadAllLines(PENDING_REQUESTS_FILE);
+                foreach (string line in lines)
                 {
-                    results.Add(line);
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    if (line.ToLower().Contains(keyword.ToLower()))
+                    {
+                        results.Add(line + " (Pending)");
+                    }
                 }
             }
+
+            // Search completed requests
+            if (File.Exists(COMPLETED_REQUESTS_FILE))
+            {
+                string[] lines = File.ReadAllLines(COMPLETED_REQUESTS_FILE);
+                foreach (string line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    if (line.ToLower().Contains(keyword.ToLower()))
+                    {
+                        results.Add(line + " (Completed)");
+                    }
+                }
+            }
+
             return results;
         }
-
-        public int CountTotalDonors()
+        public int CountTotalDistributions()
         {
-            return LoadDonors().Count;
+            return LoadCompletedRequests().Count;
         }
 
-        public int CountTotalDonations()
+        public int CountPeopleHelped()
         {
-            return LoadDonations().Count;
+            return LoadCompletedRequests().Count;
         }
 
-        public int CountDistributedDonations()
+        public Dictionary<string, int> CountItemsDistributedByCategory()
         {
-            if (!File.Exists(DONATIONS_FILE)) return 0;
-
-            int count = 0;
-            string[] lines = File.ReadAllLines(DONATIONS_FILE);
-            foreach (string line in lines)
+            Dictionary<string, int> categoryCounts = new Dictionary<string, int>
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[6].Equals("Distributed", StringComparison.OrdinalIgnoreCase))
+                {"Food", 0},
+                {"Water", 0},
+                {"Clothes", 0}
+            };
+
+            List<string> completed = LoadCompletedRequests();
+            foreach (string request in completed)
+            {
+                string[] parts = request.Split('|');
+                string category = parts[3];
+                int quantity = int.Parse(parts[4]);
+
+                if (categoryCounts.ContainsKey(category))
                 {
-                    count++;
+                    categoryCounts[category] += quantity;
                 }
             }
-            return count;
+
+            return categoryCounts;
         }
 
-        public int CountTotalReports()
-        {
-            return LoadReports().Count;
-        }
-
-        public int CountPendingReports()
-        {
-            if (!File.Exists(REPORTS_FILE)) return 0;
-
-            int count = 0;
-            string[] lines = File.ReadAllLines(REPORTS_FILE);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                string[] parts = line.Split('|');
-                if (parts[4].Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
-
+    
         public void ClearFile(string filename)
         {
             string filePath = Path.Combine(FOLDER_PATH, filename);
